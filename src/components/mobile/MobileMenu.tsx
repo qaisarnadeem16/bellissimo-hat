@@ -11,8 +11,19 @@ import Designer from '../layout/Designer';
 import DesignsDraftList from '../layout/DesignsDraftList';
 import { ItemName, Template, TemplatesContainer } from '../layout/SharedComponents';
 import Steps from '../layout/Steps';
-import { MenuItem, MobileItemsContainer } from './MobileMenuComponents';
+import {
+	AttributeHeaderBar,
+	AttributeHeaderIcon,
+	AttributeTitle,
+	HeaderNavButton,
+	MenuItem,
+	MobileItemsContainer,
+	OptionSwatch,
+	OptionSwatchCheck,
+	OptionsGrid
+} from './MobileMenuComponents';
 import TemplateGroup from 'components/TemplateGroup';
+import { ReactComponent as CheckIcon } from '../../assets/icons/check-solid.svg';
 
 // Styled component for the container of the mobile menu
 export const MobileMenuContainer = styled.div`
@@ -219,13 +230,46 @@ const MobileMenu = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [templates]);
 
-	// auto-selection if there is only 1 group
+	// auto-selection: open first real group on mobile load (skip designer/-2, drafts/-3)
 	useEffect(() => {
-		if (actualGroups && actualGroups.length === 1 && actualGroups[0].id === -2) return;
-		else if (actualGroups && actualGroups.length === 1 && !selectedGroupId) setSelectedGroupId(actualGroups[0].id);
+		if (!actualGroups || actualGroups.length === 0) return;
+		if (selectedGroupId) return;
+
+		const firstRealGroup = actualGroups.find((g) => g.id > 0) ?? actualGroups[0];
+		if (firstRealGroup && firstRealGroup.id !== -2) {
+			// console.log('[MobileMenu] auto-selecting first group', firstRealGroup);
+			setSelectedGroupId(firstRealGroup.id);
+		}
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [actualGroups, selectedGroupId]);
+
+	// auto-selection: pick first attribute of first step whenever a group is opened
+	// and the current selectedAttributeId is missing or stale (belongs to a previous group)
+	useEffect(() => {
+		if (!selectedGroup || selectedGroup.id < 0) return;
+
+		const attrBelongsToGroup =
+			selectedAttributeId != null && currentAttributes.some((a) => a.id === selectedAttributeId);
+		if (attrBelongsToGroup) return;
+
+		const step = selectedStep ?? (selectedGroup.steps?.length ? selectedGroup.steps[0] : null);
+		const firstAttribute =
+			(step && step.attributes && step.attributes[0]) ||
+			(selectedGroup.attributes && selectedGroup.attributes[0]);
+
+		if (firstAttribute) {
+			// console.log('[MobileMenu] auto-selecting first attribute', {
+			// 	group: selectedGroup.name,
+			// 	step: step?.name,
+			// 	attribute: firstAttribute.name,
+			// 	optionsCount: firstAttribute.options?.length,
+			// 	staleAttrId: selectedAttributeId
+			// });
+			setTimeout(() => handleAttributeSelection(firstAttribute.id), 0);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedGroup?.id, selectedStep?.id, selectedAttributeId, currentAttributes.length]);
 
 	// Reset attribute selection when group selection changes
 	useEffect(() => {
@@ -305,6 +349,80 @@ const MobileMenu = () => {
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isStartRegistering]);
+
+	const attributeIndex = selectedAttributeId
+		? currentAttributes.findIndex((a) => a.id === selectedAttributeId)
+		: -1;
+
+	const groupSteps = selectedGroup?.steps ?? [];
+	const stepIndex = selectedStep ? groupSteps.indexOf(selectedStep) : -1;
+
+	const canStepAttribute = (dir: 1 | -1) => {
+		if (dir === 1) {
+			if (attributeIndex >= 0 && attributeIndex < currentAttributes.length - 1) return true;
+			if (stepIndex >= 0 && stepIndex < groupSteps.length - 1) return true;
+			return groupIndex < actualGroups.length - 1;
+		}
+		if (attributeIndex > 0) return true;
+		if (stepIndex > 0) return true;
+		return groupIndex > 0;
+	};
+
+	const selectAttributeAfterStep = (attributeId: number) => {
+		// The selectedStep effect clears selectedAttributeId when the new step
+		// has more than one attribute — defer so our selection wins.
+		setTimeout(() => handleAttributeSelection(attributeId), 0);
+	};
+
+	const handleAttributeStep = (dir: 1 | -1) => {
+		// console.log('[MobileMenu] handleAttributeStep', {
+		// 	dir,
+		// 	attributeIndex,
+		// 	currentAttributesCount: currentAttributes.length,
+		// 	stepIndex,
+		// 	stepsCount: groupSteps.length,
+		// 	groupIndex,
+		// 	groupsCount: actualGroups.length
+		// });
+		if (dir === 1) {
+			if (attributeIndex >= 0 && attributeIndex < currentAttributes.length - 1) {
+				handleAttributeSelection(currentAttributes[attributeIndex + 1].id);
+				return;
+			}
+			if (stepIndex >= 0 && stepIndex < groupSteps.length - 1) {
+				const nextStep = groupSteps[stepIndex + 1];
+				handleStepSelection(nextStep.id);
+				if (nextStep.attributes.length > 0) selectAttributeAfterStep(nextStep.attributes[0].id);
+				return;
+			}
+			handleNextGroup();
+		} else {
+			if (attributeIndex > 0) {
+				handleAttributeSelection(currentAttributes[attributeIndex - 1].id);
+				return;
+			}
+			if (stepIndex > 0) {
+				const prevStep = groupSteps[stepIndex - 1];
+				handleStepSelection(prevStep.id);
+				if (prevStep.attributes.length > 0)
+					selectAttributeAfterStep(prevStep.attributes[prevStep.attributes.length - 1].id);
+				return;
+			}
+			handlePreviousGroup();
+		}
+	};
+	// console.log('[MobileMenu] render', {
+	// 	selectedGroup: selectedGroup?.name,
+	// 	selectedGroupId,
+	// 	selectedStep: selectedStep?.name,
+	// 	selectedStepId,
+	// 	selectedAttribute: selectedAttribute?.name,
+	// 	selectedAttributeId,
+	// 	lastSelectedItem,
+	// 	currentAttributes: currentAttributes.map((a) => ({ id: a.id, name: a.name, opts: a.options?.length })),
+	// 	options: options.map((o) => ({ id: o.id, name: o.name, enabled: o.enabled, selected: o.selected }))
+	// });
+
 	return (
 		<MobileMenuContainer>
 			{sellerSettings && sellerSettings.priceInfoText && (
@@ -365,7 +483,57 @@ const MobileMenu = () => {
 					))}
 				</TemplatesContainer>
 			)}
-			{selectedGroup && (
+			{selectedGroup && lastSelectedItem?.type === 'attribute' && selectedAttribute && (
+				<>
+					<AttributeHeaderBar>
+						<AttributeHeaderIcon>
+							<img
+								src={selectedGroup.imageUrl ? selectedGroup.imageUrl : star}
+								alt={T._d(selectedAttribute.name)}
+							/>
+						</AttributeHeaderIcon>
+						<AttributeTitle>{T._d(selectedAttribute.name)}</AttributeTitle>
+						<HeaderNavButton
+							type='button'
+							onClick={() => handleAttributeStep(-1)}
+							disabled={!canStepAttribute(-1)}
+						>
+							{T._('Prev', 'Composer')}
+						</HeaderNavButton>
+						<HeaderNavButton
+							type='button'
+							primary
+							onClick={() => handleAttributeStep(1)}
+							disabled={!canStepAttribute(1)}
+						>
+							{T._('Next', 'Composer')}
+						</HeaderNavButton>
+					</AttributeHeaderBar>
+
+					<OptionsGrid>
+						{selectedAttribute.options.map(
+							(option) =>
+								option.enabled && (
+									<OptionSwatch
+										key={option.guid}
+										isRound={selectedAttribute.optionShapeType === 2}
+										selected={option.selected}
+										onClick={() => handleOptionSelection(option)}
+									>
+										<img src={option.imageUrl ?? noImage} alt={T._d(option.name)} loading='lazy' />
+										{option.selected && (
+											<OptionSwatchCheck>
+												<CheckIcon />
+											</OptionSwatchCheck>
+										)}
+									</OptionSwatch>
+								)
+						)}
+					</OptionsGrid>
+				</>
+			)}
+
+			{selectedGroup && (!lastSelectedItem || lastSelectedItem?.type !== 'attribute') && (
 				<MobileItemsContainer
 					isLeftArrowVisible
 					isRightArrowVisible
@@ -408,48 +576,24 @@ const MobileMenu = () => {
 									</MenuItem>
 								);
 						})}
-					{/* </CarouselContainer> */}
 
-					{/* Options */}
 					<MobileItemsContainer
 						isLeftArrowVisible={options.length !== 0}
 						isRightArrowVisible={options.length !== 0}
 						scrollLeft={optionsScroll ?? 0}
 						onScrollChange={(value) => setOptionsScroll(value)}
 					>
-						{lastSelectedItem?.type === 'attribute' ? (
-							<>
-								{selectedAttribute &&
-									selectedAttribute.options.map(
-										(option) =>
-											option.enabled && (
-												<MenuItem
-													isRound={selectedAttribute.optionShapeType === 2}
-													description={option.description}
-													selected={option.selected}
-													imageUrl={option.imageUrl ?? ''}
-													label={T._d(option.name)}
-													hideLabel={selectedAttribute.hideOptionsLabel}
-													key={option.guid}
-													onClick={() => handleOptionSelection(option)}
-												/>
-											)
-									)}
-							</>
-						) : (
-							selectedTemplateGroup &&
-							isTemplateGroupOpened && (
-								<TemplateGroup
-									key={selectedTemplateGroupId}
-									templateGroup={selectedTemplateGroup!}
-									isMobile
-									onCloseClick={() => {
-										setIsTemplateGroupOpened(false);
-										handleTemplateGroupSelection(null);
-										handleGroupSelection(null);
-									}}
-								/>
-							)
+						{selectedTemplateGroup && isTemplateGroupOpened && (
+							<TemplateGroup
+								key={selectedTemplateGroupId}
+								templateGroup={selectedTemplateGroup!}
+								isMobile
+								onCloseClick={() => {
+									setIsTemplateGroupOpened(false);
+									handleTemplateGroupSelection(null);
+									handleGroupSelection(null);
+								}}
+							/>
 						)}
 					</MobileItemsContainer>
 				</MobileItemsContainer>
