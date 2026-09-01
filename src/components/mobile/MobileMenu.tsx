@@ -272,7 +272,14 @@ const MobileMenu = () => {
 			// 	willAdvance: !!(yesOption && option.id === yesOption.id && enabledOpts.length <= 2)
 			// });
 
-			if (yesOption && option.id === yesOption.id && enabledOpts.length > 0 && enabledOpts.length <= 2) {
+			const isYesAdvance =
+				yesOption && option.id === yesOption.id && enabledOpts.length > 0 && enabledOpts.length <= 2;
+
+			// Also auto-advance for the "Size" attribute — any size selection moves on.
+			const attributeName = (parentAttribute?.name ?? '').trim().toLowerCase();
+			const isSizeAdvance = attributeName === 'size';
+
+			if (isYesAdvance || isSizeAdvance) {
 				pendingAdvanceRef.current = {
 					attributeId: parentAttribute!.id,
 					optionId: option.id
