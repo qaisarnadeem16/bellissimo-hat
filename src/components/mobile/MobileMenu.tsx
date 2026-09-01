@@ -1,7 +1,7 @@
 import { Option, Step, ThemeTemplateGroup, useZakeke } from '@zakeke/zakeke-configurator-react';
 import { T, useActualGroups, useUndoRedoActions, useUndoRegister } from 'Helpers';
 import { Map } from 'immutable';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useStore from 'Store';
 import styled from 'styled-components';
 import savedCompositionsIcon from '../../assets/icons/saved_designs.svg';
@@ -82,6 +82,9 @@ const MobileMenu = () => {
 	const [isDesignsDraftListOpened, setisDesignsDraftListOpened] = useState(false);
 	const [isTemplateGroupOpened, setIsTemplateGroupOpened] = useState(false);
 	const [isStartRegistering, setIsStartRegistering] = useState(false);
+	// Pending "auto-advance after Yes selection" — set from a click, consumed by
+	// an effect once the option's selected state has actually flipped in the store.
+	const pendingAdvanceRef = useRef<{ attributeId: number; optionId: number } | null>(null);
 	const undoRegistering = useUndoRegister();
 	const undoRedoActions = useUndoRedoActions();
 
@@ -222,12 +225,61 @@ const MobileMenu = () => {
 			if ((window as any).algho) (window as any).algho.sendUserStopForm(true);
 		} catch (e) {}
 
-		// Auto-advance for Yes/No style attributes (<= 2 enabled options).
-		// Read directly from option.attribute — the typed back-reference on the
-		// Option class — so we never touch a potentially-stale closure value.
-		const enabledCount = option.attribute.options.filter((o) => o.enabled).length;
-		if (enabledCount > 0 && enabledCount <= 2) {
-			setTimeout(() => handleAttributeStep(1), 260);
+		// Auto-advance only when the user picks the "Yes" option on a Yes/No style
+		// attribute. Prefer option.attribute (typed back-reference), fall back to
+		// the render-time selectedAttribute if the runtime object doesn't carry it.
+		try {
+			const parentAttribute = (option as any).attribute ?? selectedAttribute;
+			const parentOptions: Option[] = parentAttribute?.options ?? [];
+			const enabledOpts = parentOptions.filter((o) => o.enabled);
+			const isYesLike = (o: Option) => {
+				const n = (o.name ?? '').trim().toLowerCase();
+				const c = (o.code ?? '').trim().toLowerCase();
+				return (
+					n === 'yes' ||
+					n === 'on' ||
+					n === 'si' ||
+					n === 'sí' ||
+					n === 'oui' ||
+					c === 'yes' ||
+					c === 'on' ||
+					c === '1'
+				);
+			};
+			const namedYes = enabledOpts.find(isYesLike);
+			const highestOrder =
+				enabledOpts.length > 0
+					? enabledOpts.reduce((a, b) => (a.displayOrder >= b.displayOrder ? a : b))
+					: null;
+			const yesOption = namedYes ?? (enabledOpts.length === 2 ? highestOrder : null);
+
+			// console.log('[MobileMenu] option picked', {
+			// 	attribute: parentAttribute?.name,
+			// 	hasAttributeBackref: !!(option as any).attribute,
+			// 	enabledOptions: enabledOpts.map((o) => ({
+			// 		id: o.id,
+			// 		name: o.name,
+			// 		code: o.code,
+			// 		displayOrder: o.displayOrder
+			// 	})),
+			// 	clicked: {
+			// 		id: option.id,
+			// 		name: option.name,
+			// 		code: option.code,
+			// 		displayOrder: option.displayOrder
+			// 	},
+			// 	resolvedYesId: yesOption?.id,
+			// 	willAdvance: !!(yesOption && option.id === yesOption.id && enabledOpts.length <= 2)
+			// });
+
+			if (yesOption && option.id === yesOption.id && enabledOpts.length > 0 && enabledOpts.length <= 2) {
+				pendingAdvanceRef.current = {
+					attributeId: parentAttribute!.id,
+					optionId: option.id
+				};
+			}
+		} catch (err) {
+			console.error('[MobileMenu] auto-advance failed', err);
 		}
 	};
 
@@ -359,6 +411,22 @@ const MobileMenu = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isStartRegistering]);
 
+	// Consume pendingAdvanceRef once Zakeke has actually flipped the option's
+	// selected state on the current attribute. This is what a Yes/No auto-advance
+	// waits for, so we never race the 3D scene reload.
+	useEffect(() => {
+		const pending = pendingAdvanceRef.current;
+		if (!pending) return;
+		if (selectedAttributeId !== pending.attributeId) return;
+		const selectedOpt = options.find((o) => o.selected);
+		if (selectedOpt?.id !== pending.optionId) return;
+
+		pendingAdvanceRef.current = null;
+		// Defer to next tick so the click's own React updates fully commit first.
+		setTimeout(() => handleAttributeStep(1), 0);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [options, selectedAttributeId]);
+
 	const attributeIndex = selectedAttributeId
 		? currentAttributes.findIndex((a) => a.id === selectedAttributeId)
 		: -1;
@@ -388,10 +456,13 @@ const MobileMenu = () => {
 		// 	dir,
 		// 	attributeIndex,
 		// 	currentAttributesCount: currentAttributes.length,
+		// 	currentAttributeIds: currentAttributes.map((a) => ({ id: a.id, name: a.name })),
+		// 	selectedAttributeId,
 		// 	stepIndex,
 		// 	stepsCount: groupSteps.length,
 		// 	groupIndex,
-		// 	groupsCount: actualGroups.length
+		// 	groupsCount: actualGroups.length,
+		// 	selectedGroup: selectedGroup?.name
 		// });
 		if (dir === 1) {
 			if (attributeIndex >= 0 && attributeIndex < currentAttributes.length - 1) {
