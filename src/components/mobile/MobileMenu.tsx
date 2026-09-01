@@ -14,13 +14,14 @@ import Steps from '../layout/Steps';
 import {
 	AttributeHeaderBar,
 	AttributeHeaderIcon,
+	AttributeHeaderSpacer,
 	AttributeTitle,
 	HeaderNavButton,
 	MenuItem,
 	MobileItemsContainer,
 	OptionSwatch,
 	OptionSwatchCheck,
-	OptionsGrid
+	OptionsCarousel
 } from './MobileMenuComponents';
 import TemplateGroup from 'components/TemplateGroup';
 import { ReactComponent as CheckIcon } from '../../assets/icons/check-solid.svg';
@@ -220,6 +221,14 @@ const MobileMenu = () => {
 		try {
 			if ((window as any).algho) (window as any).algho.sendUserStopForm(true);
 		} catch (e) {}
+
+		// Auto-advance for Yes/No style attributes (<= 2 enabled options).
+		// Read directly from option.attribute — the typed back-reference on the
+		// Option class — so we never touch a potentially-stale closure value.
+		const enabledCount = option.attribute.options.filter((o) => o.enabled).length;
+		if (enabledCount > 0 && enabledCount <= 2) {
+			setTimeout(() => handleAttributeStep(1), 260);
+		}
 	};
 
 	const setTemplateByID = async (templateID: number) => await setTemplate(templateID);
@@ -493,6 +502,7 @@ const MobileMenu = () => {
 							/>
 						</AttributeHeaderIcon>
 						<AttributeTitle>{T._d(selectedAttribute.name)}</AttributeTitle>
+						<AttributeHeaderSpacer />
 						<HeaderNavButton
 							type='button'
 							onClick={() => handleAttributeStep(-1)}
@@ -510,7 +520,7 @@ const MobileMenu = () => {
 						</HeaderNavButton>
 					</AttributeHeaderBar>
 
-					<OptionsGrid>
+					<OptionsCarousel key={selectedAttribute.id}>
 						{selectedAttribute.options.map(
 							(option) =>
 								option.enabled && (
@@ -529,7 +539,7 @@ const MobileMenu = () => {
 									</OptionSwatch>
 								)
 						)}
-					</OptionsGrid>
+					</OptionsCarousel>
 				</>
 			)}
 

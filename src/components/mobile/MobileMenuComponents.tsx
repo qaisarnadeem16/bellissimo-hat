@@ -250,13 +250,15 @@ export const MobileItemsContainer: FC<MenuItemsContainerProps> = ({
 
 export const AttributeHeaderBar = styled.div`
 	display: grid;
-	grid-template-columns: auto 1fr auto auto;
+	grid-template-columns: auto auto 1fr auto auto;
 	align-items: center;
 	gap: 10px;
 	padding: 12px 14px;
 	background-color: #fff;
 	border-bottom: 1px solid #f0f0f0;
 `;
+
+export const AttributeHeaderSpacer = styled.div``;
 
 export const AttributeHeaderIcon = styled.div`
 	width: 44px;
@@ -295,12 +297,11 @@ export const HamburgerButton = styled.button`
 export const AttributeTitle = styled.div`
 	font-size: 18px;
 	font-weight: 600;
-	text-align: center;
+	text-align: left;
 	color: #313c46;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	padding: 0 6px;
 `;
 
 export const HeaderNavButton = styled.button<{ primary?: boolean; disabled?: boolean }>`
@@ -322,15 +323,113 @@ export const HeaderNavButton = styled.button<{ primary?: boolean; disabled?: boo
 		`}
 `;
 
+const OptionsCarouselWrapper = styled.div`
+	position: relative;
+	background-color: #fff;
+`;
+
 export const OptionsGrid = styled.div`
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	gap: 10px;
-	padding: 14px 14px 18px;
+	padding: 14px 20px 18px;
 	background-color: #fff;
-	max-height: 240px;
-	overflow-y: auto;
+	overflow-x: auto;
+	overflow-y: hidden;
+	-webkit-overflow-scrolling: touch;
+	scroll-behavior: smooth;
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
+	}
 `;
+
+const CarouselArrow = styled.button<{ side: 'left' | 'right'; visible: boolean }>`
+	position: absolute;
+	top: 50%;
+	${(p) => (p.side === 'left' ? 'left: 8px;' : 'right: 8px;')}
+	transform: translateY(-50%);
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background-color: #f1f1f1;
+	border: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	z-index: 3;
+	padding: 0;
+	opacity: ${(p) => (p.visible ? 1 : 0)};
+	pointer-events: ${(p) => (p.visible ? 'auto' : 'none')};
+	transition: opacity 150ms ease-in-out;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+	svg {
+		width: 14px;
+		height: 14px;
+		fill: #313c46;
+	}
+`;
+
+export const OptionsCarousel: FC<{ children?: React.ReactNode }> = ({ children }) => {
+	const ref = useRef<HTMLDivElement | null>(null);
+	const [showLeft, setShowLeft] = useState(false);
+	const [showRight, setShowRight] = useState(false);
+
+	const update = () => {
+		if (!ref.current) return;
+		const el = ref.current;
+		setShowLeft(el.scrollLeft > 2);
+		setShowRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 2);
+	};
+
+	useEffect(() => {
+		update();
+		const el = ref.current;
+		if (!el) return;
+		el.addEventListener('scroll', update, { passive: true });
+		const ro = new ResizeObserver(update);
+		ro.observe(el);
+		return () => {
+			el.removeEventListener('scroll', update);
+			ro.disconnect();
+		};
+	}, []);
+
+	// re-check when children change
+	useEffect(() => {
+		update();
+	}, [children]);
+
+	const scrollBy = (dir: 1 | -1) => {
+		if (!ref.current) return;
+		ref.current.scrollBy({ left: dir * ref.current.clientWidth * 0.7, behavior: 'smooth' });
+	};
+
+	return (
+		<OptionsCarouselWrapper>
+			<CarouselArrow
+				side='left'
+				visible={showLeft}
+				type='button'
+				aria-label='Scroll left'
+				onClick={() => scrollBy(-1)}
+			>
+				<ArrowLeftIcon />
+			</CarouselArrow>
+			<OptionsGrid ref={ref}>{children}</OptionsGrid>
+			<CarouselArrow
+				side='right'
+				visible={showRight}
+				type='button'
+				aria-label='Scroll right'
+				onClick={() => scrollBy(1)}
+			>
+				<ArrowRightIcon />
+			</CarouselArrow>
+		</OptionsCarouselWrapper>
+	);
+};
 
 export const OptionSwatch = styled.div<{ selected?: boolean; isRound?: boolean }>`
 	position: relative;

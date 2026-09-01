@@ -349,9 +349,9 @@ const FooterMobile = () => {
 		<>
 			{!isSceneLoading && (
 				<FooterMobileContainer isQuoteEnable={product?.quoteRule !== null}>
-					<FooterMobileIcon gridArea='back' isHidden={selectedGroupId === null} onClick={handleBackClick}>
+					{/* <FooterMobileIcon gridArea='back' isHidden={selectedGroupId === null} onClick={handleBackClick}>
 						<AngleLeftSolid />
-					</FooterMobileIcon>
+					</FooterMobileIcon> */}
 
 					{!pdfPreviewDisabled && (
 						<FooterMobileIcon gridArea='pdf' onClick={handlePdfClick}>

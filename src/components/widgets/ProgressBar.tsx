@@ -87,7 +87,7 @@ const ProgressBar: FC<{ $flagStartLoading: boolean; $bgColor: string; $completed
 						</CheckIcon>
 					)}
 				</LoadingPercentageandIconContainer>
-				<p style={{paddingBottom:"20px" , fontWeight:"500"}} className="">Digital renderings may not match plaid cape fabrics perfectly. Our skilled sewers will.</p>
+				{/* <p style={{paddingBottom:"20px" , fontWeight:"500"}} className="">Digital renderings may not match plaid cape fabrics perfectly. Our skilled sewers will.</p> */}
 			</LoaderContainer>
 		</div>
 	);
