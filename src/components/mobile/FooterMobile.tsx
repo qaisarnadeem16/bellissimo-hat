@@ -2,7 +2,6 @@ import { TryOnMode, useZakeke } from '@zakeke/zakeke-configurator-react';
 import { T } from 'Helpers';
 import useStore from 'Store';
 import styled from 'styled-components';
-import { ReactComponent as AngleLeftSolid } from '../../assets/icons/angle-left-solid.svg';
 import { ReactComponent as QuoteSolid } from '../../assets/icons/quote-sign.svg';
 import { ReactComponent as PdfSolid } from '../../assets/icons/file-pdf-solid.svg';
 import { ReactComponent as ShareSolid } from '../../assets/icons/share-alt-square-solid.svg';
@@ -91,7 +90,6 @@ const FooterMobile = () => {
 		product,
 		price,
 		isOutOfStock,
-		groups,
 		isSceneLoading,
 		eventMessages,
 		visibleEventMessages,
@@ -106,13 +104,6 @@ const FooterMobile = () => {
 
 	const {
 		setIsLoading,
-		selectedGroupId,
-		setSelectedGroupId,
-		selectedAttributeId,
-		setSelectedTemplateGroupId,
-		selectedTemplateGroupId,
-		selectedStepId,
-		setSelectedAttributeId,
 		priceFormatter,
 		setIsQuoteLoading,
 		isQuoteLoading,
@@ -262,39 +253,6 @@ const FooterMobile = () => {
 			setIsLoading(false);
 		}
 	};
-	const handleBackClick = () => {
-		if (selectedAttributeId) {
-			setSelectedAttributeId(null);
-
-			const selectedCurrentGroup = groups.find((x) => x.id === selectedGroupId);
-			const selectedCurrentStep = selectedCurrentGroup?.steps.find((x) => x.id === selectedStepId);
-
-			if (
-				selectedCurrentGroup &&
-				((selectedCurrentGroup.attributes.length === 1 && selectedCurrentGroup.templateGroups.length === 0) ||
-					(selectedCurrentStep?.attributes.length === 1 && selectedCurrentStep.templateGroups.length === 0))
-			) {
-				setSelectedGroupId(null);
-			}
-		} else if (selectedTemplateGroupId) {
-			console.log('selectedTemplateGroupId');
-			setSelectedTemplateGroupId(null);
-
-			const selectedCurrentGroup = groups.find((x) => x.id === selectedGroupId);
-			const selectedCurrentStep = selectedCurrentGroup?.steps.find((x) => x.id === selectedStepId);
-
-			if (
-				selectedCurrentGroup &&
-				((selectedCurrentGroup.templateGroups.length === 1 && selectedCurrentGroup.attributes.length === 0) ||
-					(selectedCurrentStep?.templateGroups.length === 1 && selectedCurrentStep.attributes.length === 0))
-			) {
-				setSelectedGroupId(null);
-			}
-		} else if (selectedGroupId) {
-			setSelectedGroupId(null);
-		}
-	};
-
 	const handleSubmitRequestQuote = async (formData: any) => {
 		let thereIsARequiredFormEmpty = formData.some((form: any) => form.required && form.value === '');
 		if (thereIsARequiredFormEmpty)
@@ -349,10 +307,6 @@ const FooterMobile = () => {
 		<>
 			{!isSceneLoading && (
 				<FooterMobileContainer isQuoteEnable={product?.quoteRule !== null}>
-					{/* <FooterMobileIcon gridArea='back' isHidden={selectedGroupId === null} onClick={handleBackClick}>
-						<AngleLeftSolid />
-					</FooterMobileIcon> */}
-
 					{!pdfPreviewDisabled && (
 						<FooterMobileIcon gridArea='pdf' onClick={handlePdfClick}>
 							<PdfSolid />
