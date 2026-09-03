@@ -504,9 +504,9 @@ export const QuantityContainer = styled.div`
 `;
 
 export const FooterMobileContainer = styled.div<{ isQuoteEnable?: boolean }>`
-	height: 70px;
+	height: 64px;
 	display: grid;
-	grid-template-columns: repeat(5, 1fr);
+	grid-template-columns: 52px 52px 52px 52px 1fr;
 	background-color: #fff;
 	font-size: 12px;
 	margin-top: 4px;
@@ -515,8 +515,8 @@ export const FooterMobileContainer = styled.div<{ isQuoteEnable?: boolean }>`
 	${(props) =>
 		props.isQuoteEnable &&
 		`
-	grid-template-columns: repeat(6, 1fr);
-	grid-template-areas: 'back pdf save share cart quote' 
+	grid-template-columns: 52px 52px 52px 52px 1fr 96px;
+	grid-template-areas: 'back pdf save share cart quote'
 	`};
 `;
 

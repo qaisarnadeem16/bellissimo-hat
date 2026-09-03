@@ -10,7 +10,7 @@ import { MessageDialog, QuestionDialog, useDialogManager } from '../dialogs/Dial
 import ErrorDialog from '../dialogs/ErrorDialog';
 import PdfDialog from '../dialogs/PdfDialog';
 import ShareDialog from '../dialogs/ShareDialog';
-import { FooterMobileContainer, PriceContainer } from '../layout/SharedComponents';
+import { FooterMobileContainer } from '../layout/SharedComponents';
 
 import QuotationFormDialog from 'components/dialogs/QuotationFormDialog';
 import SaveDesignsDraftDialog from 'components/dialogs/SaveDesignsDraftDialog';
@@ -26,6 +26,30 @@ const OutOfStockTooltipContent = styled(TooltipContent)`
 	max-width: 400px;
 `;
 
+const CartLabel = styled.span`
+	font-size: 13px;
+	font-weight: bold;
+	line-height: 1.1;
+	color: #fff;
+	text-transform: uppercase;
+	white-space: nowrap;
+`;
+
+const CartPrice = styled.span`
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.1;
+	color: #fff;
+	white-space: nowrap;
+`;
+
+const CartTextBlock = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
+`;
+
 const FooterMobileIcon = styled.div<{
 	isHidden?: boolean;
 	color?: string;
@@ -35,27 +59,25 @@ const FooterMobileIcon = styled.div<{
 	disabled?: boolean;
 	gridArea?: string;
 }>`
-	display: flex;
+	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	border: 1px transparent solid;
 	color: ${(props) => (props.color ? props.color : `#313c46`)};
 	background-color: ${(props) => (props.backgroundColor ? props.backgroundColor : `transparent`)};
 	font-size: 14px;
 	text-transform: uppercase;
 	text-align: center;
-	display: inline-flex;
 	min-height: 38px;
 	border: none;
-	border-right: 3px #f4f4f4 solid;
+	border-right: 1px #f0f0f0 solid;
 	cursor: pointer;
 	flex-direction: column;
 	font-weight: bold !important;
 
 	svg {
 		fill: ${(props) => props.iconColor && `${props.iconColor}`};
-		width: 32px;
-		height: 32px;
+		width: 24px;
+		height: 24px;
 	}
 
 	${(props) => props.isHidden && `visibility:hidden`};
@@ -64,9 +86,15 @@ const FooterMobileIcon = styled.div<{
 		props.isCart &&
 		`
         display: flex;
-        flex-direction: column-reverse;
+        flex-direction: row;
         align-items: center;
-        justify-content: center;`};
+        justify-content: center;
+        gap: 10px;
+        border-right: none;
+        svg {
+            width: 26px;
+            height: 26px;
+        }`};
 
 	${(props) =>
 		props.disabled &&
@@ -114,7 +142,6 @@ const FooterMobile = () => {
 		tryOnRef,
 		setIsPDStartedFromCart,
 		pdValue,
-		isMobile,
 		setIsSavingComposition,
 		isSavingComposition
 	} = useStore();
@@ -344,22 +371,22 @@ const FooterMobile = () => {
 							onClick={!isAddToCartLoading ? () => handleAddToCart() : () => null}
 						>
 							{!isOutOfStock &&
-								price !== null &&
-								price > 0 &&
-								(!sellerSettings || !sellerSettings.hidePrice) && (
-									<PriceContainer style={{ fontSize: '18px' }} $isMobile={isMobile}>
-										{priceFormatter.format(price)}
-									</PriceContainer>
-								)}
-
-							{isOutOfStock && T._('OUT OF STOCK', 'Composer')}
-
-							{!isOutOfStock &&
 								!isAddToCartLoading &&
 								!isDraftEditor &&
 								(isEditorMode ? <SaveSolid /> : <CartSolid />)}
 							{isDraftEditor && !isSavingComposition && <SaveSolid />}
 							{(isAddToCartLoading || isSavingComposition) && <TailSpin color='#FFFFFF' height='25px' />}
+
+							{isOutOfStock && <CartLabel>{T._('OUT OF STOCK', 'Composer')}</CartLabel>}
+
+							{!isOutOfStock && !isAddToCartLoading && !isSavingComposition && (
+								<CartTextBlock>
+									<CartLabel>{T._('Add to cart', 'Composer')}</CartLabel>
+									{price !== null && price > 0 && (!sellerSettings || !sellerSettings.hidePrice) && (
+										<CartPrice>{priceFormatter.format(price)}</CartPrice>
+									)}
+								</CartTextBlock>
+							)}
 						</FooterMobileIcon>
 					)}
 					{product?.quoteRule && !isViewerMode && !isDraftEditor && !isEditorMode && (
