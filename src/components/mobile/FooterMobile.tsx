@@ -386,7 +386,7 @@ const FooterMobile = () => {
 										(price !== null && price > 0 ? (
 											<CartPrice>{priceFormatter.format(price)}</CartPrice>
 										) : (
-											<CartPrice>{priceFormatter.format(199.99)}</CartPrice>
+											<CartPrice>{priceFormatter.format(price)}</CartPrice>
 										))}
 								</CartTextBlock>
 							)}
