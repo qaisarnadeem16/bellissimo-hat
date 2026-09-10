@@ -129,6 +129,36 @@ const SelectSingleValueLabel = styled.span`
 		color: black;
 `;
 
+// Mobile-only inline area tabs — replaces the "Customizable Areas" dropdown so
+// both areas (e.g. "Custom Lining" / "Custom Name") are visible at once.
+const MobileAreaTabsLabel = styled.div`
+	font-size: 13px;
+	font-weight: 600;
+	color: #313c46;
+	margin: 4px 0 8px;
+`;
+
+const MobileAreaTabsWrap = styled.div`
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0 0 16px;
+`;
+
+const MobileAreaTab = styled.button<{ selected?: boolean }>`
+	appearance: none;
+	border: 1px solid ${(p) => (p.selected ? '#141b23' : '#d9dde1')};
+	background-color: ${(p) => (p.selected ? '#141b23' : '#fff')};
+	color: ${(p) => (p.selected ? '#fff' : '#313c46')};
+	font-size: 14px;
+	font-weight: 600;
+	padding: 8px 14px;
+	border-radius: 999px;
+	cursor: pointer;
+	transition: background-color 120ms ease-in-out, color 120ms ease-in-out,
+		border-color 120ms ease-in-out;
+`;
+
 const SelectOption = (props: JSX.IntrinsicAttributes & OptionProps<any, boolean, GroupBase<any>>) => {
 	return (
 		<components.Option {...props}>
@@ -232,9 +262,24 @@ const Designer: FC<{ onCloseClick?: () => void }> = ({ onCloseClick }) => {
 				finalVisibleAreas.push(filteredArea);
 		});
 
-	const [actualAreaId, setActualAreaId] = useState<number>(
-		finalVisibleAreas && finalVisibleAreas.length > 0 ? finalVisibleAreas[0].id : 0
-	);
+	// Resolve the initial customizable area. If MobileMenu stashed a hint
+	// (e.g. "lining" or "name") because the user opened this via a Yes/No
+	// shortcut, honor it so the correct area is preselected. We intentionally
+	// do NOT clear the hint here — React 18 StrictMode remounts this component
+	// twice on mount, and clearing after the first mount would drop the hint
+	// before the second mount reads it. The hint gets overwritten by the next
+	// jump anyway, so leaving it is harmless.
+	const preferredCustomizableAreaHint = useStore((s) => s.preferredCustomizableAreaHint);
+	const initialAreaId = (() => {
+		if (!finalVisibleAreas || finalVisibleAreas.length === 0) return 0;
+		if (preferredCustomizableAreaHint) {
+			const hint = preferredCustomizableAreaHint.toLowerCase();
+			const match = finalVisibleAreas.find((a) => (a.name ?? '').toLowerCase().includes(hint));
+			if (match) return match.id;
+		}
+		return finalVisibleAreas[0].id;
+	})();
+	const [actualAreaId, setActualAreaId] = useState<number>(initialAreaId);
 
 	let currentTemplateArea = currentTemplate!.areas.find((x) => x.id === actualAreaId);
 	let itemsFiltered = items.filter((item) => item.areaId === actualAreaId).sort((a, b) => (b as any).index - (a as any).index);
@@ -544,28 +589,23 @@ const Designer: FC<{ onCloseClick?: () => void }> = ({ onCloseClick }) => {
 						</SelectContainer>
 					)}
 					{isMobile && finalVisibleAreas.length > 1 && (
-						<SelectContainer>
-							<FormControl label={T._('Customizable Areas', 'Composer')}>
-								<AdvancedSelect
-									styles={{
-										container: (base) =>
-											({
-												...base,
-												minWidth: 300
-											} as CSSObjectWithLabel)
-									}}
-									isSearchable={false}
-									options={finalVisibleAreas}
-									menuPosition='fixed'
-									components={{
-										Option: SelectOption,
-										SingleValue: SelectSingleValue
-									}}
-									value={finalVisibleAreas.find((x) => x.id === actualAreaId) ?? finalVisibleAreas[0]}
-								onChange={(area: any) => setActualAreaId(area.id)}
-							/>
-							</FormControl>
-						</SelectContainer>
+						<>
+							<MobileAreaTabsLabel>
+								{T._('Customizable Areas', 'Composer')}
+							</MobileAreaTabsLabel>
+							<MobileAreaTabsWrap>
+								{finalVisibleAreas.map((area) => (
+									<MobileAreaTab
+										key={area.id}
+										type='button'
+										selected={area.id === actualAreaId}
+										onClick={() => setActualAreaId(area.id)}
+									>
+										{T._d(area.name)}
+									</MobileAreaTab>
+								))}
+							</MobileAreaTabsWrap>
+						</>
 					)}
 
 					{itemsFiltered.length === 0 && !(showAddTextButton || showUploadButton || showGalleryButton) && (

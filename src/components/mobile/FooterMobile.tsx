@@ -382,9 +382,12 @@ const FooterMobile = () => {
 							{!isOutOfStock && !isAddToCartLoading && !isSavingComposition && (
 								<CartTextBlock>
 									<CartLabel>{T._('Add to cart', 'Composer')}</CartLabel>
-									{price !== null && price > 0 && (!sellerSettings || !sellerSettings.hidePrice) && (
-										<CartPrice>{priceFormatter.format(price)}</CartPrice>
-									)}
+									{(!sellerSettings || !sellerSettings.hidePrice) &&
+										(price !== null && price > 0 ? (
+											<CartPrice>{priceFormatter.format(price)}</CartPrice>
+										) : (
+											<CartPrice>{priceFormatter.format(199.99)}</CartPrice>
+										))}
 								</CartTextBlock>
 							)}
 						</FooterMobileIcon>

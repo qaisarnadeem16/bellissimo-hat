@@ -73,7 +73,10 @@ const MobileMenu = () => {
 		setSelectedTemplateGroupId,
 		selectedTemplateGroupId,
 		lastSelectedItem,
-		setLastSelectedItem
+		setLastSelectedItem,
+		setPreferredCustomizableAreaHint,
+		customizeSourceGroupId,
+		setCustomizeSourceGroupId
 	} = useStore();
 	const [scrollLeft, setScrollLeft] = useState<number | null>(null);
 	const [optionsScroll, setOptionsScroll] = useState<number | null>(null);
@@ -84,7 +87,13 @@ const MobileMenu = () => {
 	const [isStartRegistering, setIsStartRegistering] = useState(false);
 	// Pending "auto-advance after Yes selection" — set from a click, consumed by
 	// an effect once the option's selected state has actually flipped in the store.
-	const pendingAdvanceRef = useRef<{ attributeId: number; optionId: number } | null>(null);
+	// If `jumpToGroupId` is set, we jump to that group when Zakeke commits the
+	// selection; otherwise we advance to the next attribute in sequence.
+	const pendingAdvanceRef = useRef<{
+		attributeId: number;
+		optionId: number;
+		jumpToGroupId?: number;
+	} | null>(null);
 	const undoRegistering = useUndoRegister();
 	const undoRedoActions = useUndoRedoActions();
 
@@ -279,7 +288,35 @@ const MobileMenu = () => {
 			const attributeName = (parentAttribute?.name ?? '').trim().toLowerCase();
 			const isSizeAdvance = attributeName === 'size';
 
-			if (isYesAdvance || isSizeAdvance) {
+			// Groups whose Yes should jump straight to the Customize / Designer
+			// group (id -2) so the associated text or image editor opens. The
+			// area hint tells the Designer WHICH customizable area to preselect.
+			// NOTE: We intentionally do NOT gate on `actualGroups.find(g => g.id === -2)`.
+			// On the very first Yes click Zakeke may not have surfaced the
+			// Customize group yet, which would otherwise drop us into the normal
+			// sequential advance and send the user to the next real group (Logo).
+			// By the time the pending-advance effect actually fires
+			// `handleGroupSelection(-2)` a tick later, actualGroups is populated.
+			const groupName = (selectedGroup?.name ?? '').trim().toLowerCase();
+			const isLiningGroup = groupName.includes('lining');
+			const isCustomMessageGroup =
+				groupName.includes('custom message') || groupName.includes('message');
+			const isJumpToCustomizeGroup = isLiningGroup || isCustomMessageGroup;
+
+			if (isYesAdvance && isJumpToCustomizeGroup) {
+				// Store a substring the Designer can use to match against area
+				// names ("Custom Lining" / "Custom Name" in the current data set).
+				const hint = isLiningGroup ? 'lining' : 'name';
+				setPreferredCustomizableAreaHint(hint);
+				// Remember which group we came from so the Designer's OK button
+				// can navigate to the group AFTER it.
+				if (selectedGroup) setCustomizeSourceGroupId(selectedGroup.id);
+				pendingAdvanceRef.current = {
+					attributeId: parentAttribute!.id,
+					optionId: option.id,
+					jumpToGroupId: -2
+				};
+			} else if (isYesAdvance || isSizeAdvance) {
 				pendingAdvanceRef.current = {
 					attributeId: parentAttribute!.id,
 					optionId: option.id
@@ -428,9 +465,16 @@ const MobileMenu = () => {
 		const selectedOpt = options.find((o) => o.selected);
 		if (selectedOpt?.id !== pending.optionId) return;
 
+		const jumpTarget = pending.jumpToGroupId;
 		pendingAdvanceRef.current = null;
 		// Defer to next tick so the click's own React updates fully commit first.
-		setTimeout(() => handleAttributeStep(1), 0);
+		setTimeout(() => {
+			if (jumpTarget != null) {
+				handleGroupSelection(jumpTarget);
+			} else {
+				handleAttributeStep(1);
+			}
+		}, 0);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [options, selectedAttributeId]);
 
@@ -692,7 +736,21 @@ const MobileMenu = () => {
 				<Designer
 					onCloseClick={() => {
 						setIsTemplateEditorOpened(false);
-						handleGroupSelection(null);
+						// If the user was auto-jumped here (from Custom Lining /
+						// Custom Message), OK advances to the group AFTER their
+						// source group, wrapping to the first real group at the end.
+						const realGroups = actualGroups.filter((g) => g.id > 0);
+						if (customizeSourceGroupId != null && realGroups.length > 0) {
+							const idx = realGroups.findIndex((g) => g.id === customizeSourceGroupId);
+							const nextGroup =
+								idx >= 0 && idx < realGroups.length - 1
+									? realGroups[idx + 1]
+									: realGroups[0];
+							setCustomizeSourceGroupId(null);
+							handleGroupSelection(nextGroup.id);
+						} else {
+							handleGroupSelection(null);
+						}
 					}}
 				/>
 			)}

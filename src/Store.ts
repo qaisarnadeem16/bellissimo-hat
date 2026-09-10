@@ -56,6 +56,16 @@ interface Store {
 	notifications: Notification[];
 	setNotifications: (notifications: Notification[]) => void;
 	removeNotification: (id: number) => void;
+	// Optional hint used by the Designer to pick the correct Customizable Area
+	// when the user is auto-jumped into the Customize group (e.g. from
+	// "Customize Lining" or "Custom Message"). Lowercase substring match.
+	preferredCustomizableAreaHint: string | null;
+	setPreferredCustomizableAreaHint: (hint: string | null) => void;
+	// Group the user was on before we auto-jumped them into the Customize
+	// group. When they click OK we advance to the group AFTER this one
+	// (wrapping to the first real group when at the end).
+	customizeSourceGroupId: number | null;
+	setCustomizeSourceGroupId: (id: number | null) => void;
 }
 
 const useStore = create<Store>((set) => ({
@@ -204,6 +214,15 @@ const useStore = create<Store>((set) => ({
 		set(() => ({
 			tagsOfSavedDesigns
 		}));
+	},
+
+	preferredCustomizableAreaHint: null,
+	setPreferredCustomizableAreaHint: (hint) => {
+		set({ preferredCustomizableAreaHint: hint });
+	},
+	customizeSourceGroupId: null,
+	setCustomizeSourceGroupId: (id) => {
+		set({ customizeSourceGroupId: id });
 	}
 }));
 
