@@ -1,5 +1,5 @@
 import { Option, Step, ThemeTemplateGroup, useZakeke } from '@zakeke/zakeke-configurator-react';
-import { T, useActualGroups, useUndoRedoActions, useUndoRegister } from 'Helpers';
+import { T, TWO_TONE_NOTE, isTwoToneOption, useActualGroups, useUndoRedoActions, useUndoRegister } from 'Helpers';
 import { Map } from 'immutable';
 import { useEffect, useRef, useState } from 'react';
 import useStore from 'Store';
@@ -16,11 +16,13 @@ import {
 	AttributeHeaderIcon,
 	AttributeHeaderSpacer,
 	AttributeTitle,
+	AttributeTitleNote,
 	HeaderNavButton,
 	MenuItem,
 	MobileItemsContainer,
 	OptionSwatch,
 	OptionSwatchCheck,
+	OptionSwatchNote,
 	OptionsCarousel
 } from './MobileMenuComponents';
 import TemplateGroup from 'components/TemplateGroup';
@@ -99,6 +101,23 @@ const MobileMenu = () => {
 
 	const actualGroups = useActualGroups() ?? [];
 
+	// useEffect(() => {
+	// const customGroups = actualGroups.filter((g) => (g.name ?? '').toLowerCase().includes('custom'));
+	// console.log('[MobileMenu] custom groups', customGroups);
+	// console.log(
+	// '[MobileMenu] custom groups (summary)',
+	// customGroups.map((g) => ({
+	// id: g.id,
+	// name: g.name,
+	// attributes: [...(g.attributes ?? []), ...(g.steps ?? []).flatMap((st) => st.attributes ?? [])].map((a) => ({
+	// id: a.id,
+	// name: a.name,
+	// options: a.options?.map((o) => ({ id: o.id, name: o.name, code: o.code, enabled: o.enabled, selected: o.selected }))
+	// }))
+	// }))
+	// );
+	// }, [actualGroups]);
+
 	const selectedGroup = selectedGroupId ? actualGroups.find((group) => group.id === selectedGroupId) : null;
 	const selectedStep = selectedGroupId
 		? actualGroups.find((group) => group.id === selectedGroupId)?.steps.find((step) => step.id === selectedStepId)
@@ -167,6 +186,15 @@ const MobileMenu = () => {
 			undoRedoActions.fillUndoStack({ type: 'group', id: selectedGroupId, direction: 'undo' });
 			undoRedoActions.fillUndoStack({ type: 'group', id: groupId, direction: 'redo' });
 		}
+
+		// Keep the Designer's preselected area in sync with wherever the user is
+		// navigating, so a stale hint from an earlier Yes click (e.g. "lining")
+		// doesn't open the wrong tab when they later reach Custom Message.
+		const hintSource = actualGroups.find((g) => g.id === groupId) ?? (groupId === -2 ? selectedGroup : null);
+		const hintSourceName = (hintSource?.name ?? '').toLowerCase();
+		if (hintSourceName.includes('lining')) setPreferredCustomizableAreaHint('lining');
+		else if (hintSourceName.includes('message') || /custom\s*name/.test(hintSourceName))
+			setPreferredCustomizableAreaHint('name');
 
 		setSelectedGroupId(groupId);
 		//Reset scrollbar for iphone bug
@@ -299,14 +327,31 @@ const MobileMenu = () => {
 			// `handleGroupSelection(-2)` a tick later, actualGroups is populated.
 			const groupName = (selectedGroup?.name ?? '').trim().toLowerCase();
 			const isLiningGroup = groupName.includes('lining');
+			const isCustomNameYes =
+				/custom\s*name/.test(groupName) || /custom\s*name/.test(attributeName);
 			const isCustomMessageGroup =
-				groupName.includes('custom message') || groupName.includes('message');
+				groupName.includes('custom message') || groupName.includes('message') || isCustomNameYes;
 			const isJumpToCustomizeGroup = isLiningGroup || isCustomMessageGroup;
+
+			// "Yes" to Custom Name: preselect the "Custom Name" lining option so the
+			// customer doesn't have to pick it again in the Custom Lining step.
+			if (isYesAdvance && isCustomNameYes) {
+				for (const g of actualGroups) {
+					if (!(g.name ?? '').toLowerCase().includes('lining')) continue;
+					const attrs = [...(g.attributes ?? []), ...(g.steps ?? []).flatMap((st) => st.attributes ?? [])];
+					for (const a of attrs) {
+						const liningOpt = (a.options ?? []).find(
+							(o) => o.enabled && /custom\s*name/i.test(o.name ?? '')
+						);
+						if (liningOpt && !liningOpt.selected) selectOption(liningOpt.id);
+					}
+				}
+			}
 
 			if (isYesAdvance && isJumpToCustomizeGroup) {
 				// Store a substring the Designer can use to match against area
 				// names ("Custom Lining" / "Custom Name" in the current data set).
-				const hint = isLiningGroup ? 'lining' : 'name';
+				const hint = isLiningGroup && !isCustomNameYes ? 'lining' : 'name';
 				setPreferredCustomizableAreaHint(hint);
 				// Remember which group we came from so the Designer's OK button
 				// can navigate to the group AFTER it.
@@ -590,6 +635,7 @@ const MobileMenu = () => {
 										group.id === -3 ? savedCompositionsIcon : group.imageUrl ? group.imageUrl : star
 									}
 									label={group.name ? T._d(group.name) : T._('Customize', 'Composer')}
+									note={isTwoToneOption(group) ? TWO_TONE_NOTE : undefined}
 									onClick={() => handleGroupSelection(group.id)}
 								></MenuItem>
 							);
@@ -653,6 +699,9 @@ const MobileMenu = () => {
 										onClick={() => handleOptionSelection(option)}
 									>
 										<img src={option.imageUrl ?? noImage} alt={T._d(option.name)} loading='lazy' />
+										{(isTwoToneOption(option) || (isTwoToneOption(selectedAttribute) && !/^(x|no|off|0)$/i.test((option.name ?? '').trim()) && option.displayOrder === Math.max(...selectedAttribute.options.map((o) => o.displayOrder)))) && (
+											<OptionSwatchNote>{TWO_TONE_NOTE}</OptionSwatchNote>
+										)}
 										{option.selected && (
 											<OptionSwatchCheck>
 												<CheckIcon />
@@ -692,6 +741,7 @@ const MobileMenu = () => {
 										isRound={item.optionShapeType === 2}
 									>
 										<ItemName> {T._d(item.name).toUpperCase()} </ItemName>
+										{isTwoToneOption(item) && <AttributeTitleNote>{TWO_TONE_NOTE}</AttributeTitleNote>}
 									</MenuItem>
 								);
 							else

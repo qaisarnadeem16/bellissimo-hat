@@ -1,4 +1,4 @@
-import { useUndoRegister, useUndoRedoActions, T } from "Helpers";
+import { useUndoRegister, useUndoRedoActions, T, isTwoToneOption, TWO_TONE_NOTE } from "Helpers";
 import { FC } from "react";
 import styled from "styled-components";
 import { Option, useZakeke, Attribute } from '@zakeke/zakeke-configurator-react';
@@ -68,6 +68,14 @@ const OptionName = styled.span`
     }
 `;
 
+const OptionNote = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: #141b23;
+    margin-top: 2px;
+    text-align: center;
+`;
+
 const OptIconContainer = styled.div`
     width: 100%;
     aspect-ratio: 1;
@@ -112,6 +120,7 @@ const OptionItem: FC<{ selectedAttribute: Attribute | null | undefined, option: 
         </OptionIconContainer>
 
         {!option.attribute.hideOptionsLabel && <OptionName >{T._d(option.name)}</OptionName>}
+        {isTwoToneOption(option) && <OptionNote>{TWO_TONE_NOTE}</OptionNote>}
     </OptionContainer>;
 }
 

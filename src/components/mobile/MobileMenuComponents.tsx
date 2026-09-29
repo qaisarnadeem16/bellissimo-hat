@@ -61,6 +61,18 @@ export const MenuItemImagesImageWrapper = styled.div`
 `;
 
 // Styled component for the label of each menu item
+export const MenuItemNote = styled.span`
+	position: absolute;
+	bottom: 4px;
+	left: 0;
+	right: 0;
+	text-align: center;
+	font-size: 11px !important;
+	font-weight: 600;
+	color: #141b23;
+	white-space: nowrap;
+`;
+
 export const MenuItemLabel = styled.span`
 	font-size: 14px;
 	font-weight: 500;
@@ -121,6 +133,7 @@ interface MenuItemProps {
 	imageUrl?: string | null;
 	icon?: React.ReactNode | string | null | undefined;
 	label: string;
+	note?: string;
 	onClick: () => void;
 	className?: string;
 	images?: string[];
@@ -304,6 +317,12 @@ export const AttributeTitle = styled.div`
 	white-space: nowrap;
 `;
 
+export const AttributeTitleNote = styled.div`
+	font-size: 12px;
+	font-weight: 600;
+	color: #141b23;
+`;
+
 export const HeaderNavButton = styled.button<{ primary?: boolean; disabled?: boolean }>`
 	height: 42px;
 	padding: 0 18px;
@@ -453,6 +472,24 @@ export const OptionSwatch = styled.div<{ selected?: boolean; isRound?: boolean }
 	}
 `;
 
+export const OptionSwatchNote = styled.div`
+	position: absolute;
+	left: 50%;
+	bottom: -8px;
+	transform: translateX(-50%);
+	white-space: nowrap;
+	background-color: #141b23;
+	color: #fff;
+	font-size: 9px;
+	font-weight: 600;
+	line-height: 1;
+	padding: 3px 6px;
+	border-radius: 999px;
+	box-shadow: 0 0 0 2px #fff;
+	z-index: 2;
+	pointer-events: none;
+`;
+
 export const OptionSwatchCheck = styled.div`
 	position: absolute;
 	top: -6px;
@@ -541,6 +578,7 @@ export const MenuItem: FC<MenuItemProps> = (props) => {
 				</MenuItemImagesWrapper>
 			)}
 			{!props.hideLabel && <MenuItemLabel>{props.label}</MenuItemLabel>}
+			{props.note && <MenuItemNote>{props.note}</MenuItemNote>}
 		</MobileItemContainer>
 	);
 };

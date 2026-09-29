@@ -24,6 +24,12 @@ export const launchFullscreen = (element: HTMLElement) => {
 	if (requestFullScreen) requestFullScreen.call(element);
 };
 
+// Two-Tone is a paid add-on; used to flag it with an "Additional $100" note.
+export const isTwoToneOption = (option?: { name?: string | null } | null) =>
+	/two[\s-]*tone/i.test(option?.name ?? '');
+
+export const TWO_TONE_NOTE = 'Additional $100';
+
 export const swap = (group: Group[], i: number, j: number) => {
 	let temp = group[i];
 	group[i] = group[j];

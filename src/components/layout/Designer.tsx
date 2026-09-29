@@ -317,7 +317,7 @@ const Designer: FC<{ onCloseClick?: () => void }> = ({ onCloseClick }) => {
 	}, [actualAreaId]);
 
 	useEffect(() => {
-		if (finalVisibleAreas.length > 0 && actualAreaId === 0) setActualAreaId(finalVisibleAreas[0].id);
+		if (finalVisibleAreas.length > 0 && actualAreaId === 0) setActualAreaId(initialAreaId);
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [finalVisibleAreas]);

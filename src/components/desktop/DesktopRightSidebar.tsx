@@ -9,7 +9,7 @@ import Designer from '../layout/Designer';
 
 import { useZakeke } from '@zakeke/zakeke-configurator-react';
 import { CarouselContainer, Icon } from 'components/Atomic';
-import { T, useActualGroups, useUndoRedoActions, useUndoRegister } from 'Helpers';
+import { T, TWO_TONE_NOTE, isTwoToneOption, useActualGroups, useUndoRedoActions, useUndoRegister } from 'Helpers';
 import { Map } from 'immutable';
 import React, { useEffect, useState } from 'react';
 import useStore from 'Store';
@@ -545,6 +545,9 @@ const DesktopRightSidebar = () => {
 														))}
 											</Options>
 										</OptionsContainer>
+										{isTwoToneOption(selectedAttribute) && (
+											<AttributeDescription>{TWO_TONE_NOTE}</AttributeDescription>
+										)}
 										<AttributeDescription>{selectedAttribute?.description}</AttributeDescription>
 									</>
 								) : (
