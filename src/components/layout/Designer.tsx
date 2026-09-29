@@ -280,6 +280,27 @@ const Designer: FC<{ onCloseClick?: () => void }> = ({ onCloseClick }) => {
 		return finalVisibleAreas[0].id;
 	})();
 	const [actualAreaId, setActualAreaId] = useState<number>(initialAreaId);
+	// True once the customer clicks an area tab themselves; stops the hint-based
+	// auto-switch below from overriding their choice.
+	const userPickedAreaRef = useRef(false);
+	// Hold rendering while the hinted area hasn't appeared yet, so the wrong tab
+	// never flashes; a short timeout guarantees we never stay blank.
+	const [waitingForHintedArea, setWaitingForHintedArea] = useState(
+		() =>
+			!!preferredCustomizableAreaHint &&
+			!finalVisibleAreas.some((a) =>
+				(a.name ?? '').toLowerCase().includes(preferredCustomizableAreaHint.toLowerCase())
+			)
+	);
+	useEffect(() => {
+		if (!waitingForHintedArea) return;
+		const t = setTimeout(() => setWaitingForHintedArea(false), 1500);
+		return () => clearTimeout(t);
+	}, [waitingForHintedArea]);
+	const pickArea = (areaId: number) => {
+		userPickedAreaRef.current = true;
+		setActualAreaId(areaId);
+	};
 
 	let currentTemplateArea = currentTemplate!.areas.find((x) => x.id === actualAreaId);
 	let itemsFiltered = items.filter((item) => item.areaId === actualAreaId).sort((a, b) => (b as any).index - (a as any).index);
@@ -315,6 +336,19 @@ const Designer: FC<{ onCloseClick?: () => void }> = ({ onCloseClick }) => {
 		if (area && area.length > 0) setCamera(area[0].cameraLocationID as string);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [actualAreaId]);
+
+	// The hinted area (e.g. "Custom Name") may only become visible after Zakeke
+	// applies the Yes selection, i.e. after this component first mounted. Switch to
+	// it as soon as it appears, unless the customer already chose a tab.
+	useEffect(() => {
+		if (userPickedAreaRef.current || !preferredCustomizableAreaHint) return;
+		const hint = preferredCustomizableAreaHint.toLowerCase();
+		const match = finalVisibleAreas.find((a) => (a.name ?? '').toLowerCase().includes(hint));
+		if (match && match.id !== actualAreaId) setActualAreaId(match.id);
+		if (match) setWaitingForHintedArea(false);
+
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [finalVisibleAreas.map((a) => a.id).join(','), preferredCustomizableAreaHint]);
 
 	useEffect(() => {
 		if (finalVisibleAreas.length > 0 && actualAreaId === 0) setActualAreaId(initialAreaId);
@@ -496,6 +530,8 @@ const Designer: FC<{ onCloseClick?: () => void }> = ({ onCloseClick }) => {
 		}
 	};
 
+	if (waitingForHintedArea) return null;
+
 	return (
 		<>
 			{!moveElements && (
@@ -556,7 +592,7 @@ const Designer: FC<{ onCloseClick?: () => void }> = ({ onCloseClick }) => {
 								<Area
 									key={area.id}
 									selected={actualAreaId === area.id}
-									onClick={() => setActualAreaId(area.id)}
+									onClick={() => pickArea(area.id)}
 								>
 									{T._d(area.name)}
 								</Area>
@@ -599,7 +635,7 @@ const Designer: FC<{ onCloseClick?: () => void }> = ({ onCloseClick }) => {
 										key={area.id}
 										type='button'
 										selected={area.id === actualAreaId}
-										onClick={() => setActualAreaId(area.id)}
+										onClick={() => pickArea(area.id)}
 									>
 										{T._d(area.name)}
 									</MobileAreaTab>
