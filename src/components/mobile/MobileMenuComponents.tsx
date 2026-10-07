@@ -351,7 +351,7 @@ export const OptionsGrid = styled.div`
 	display: flex;
 	flex-wrap: nowrap;
 	gap: 10px;
-	padding: 14px 20px 18px;
+	padding: 14px 20px 28px;
 	background-color: #fff;
 	overflow-x: auto;
 	overflow-y: hidden;
@@ -475,7 +475,7 @@ export const OptionSwatch = styled.div<{ selected?: boolean; isRound?: boolean }
 export const OptionSwatchNote = styled.div`
 	position: absolute;
 	left: 50%;
-	bottom: -8px;
+	top: calc(100% + -2px);
 	transform: translateX(-50%);
 	white-space: nowrap;
 	background-color: #141b23;

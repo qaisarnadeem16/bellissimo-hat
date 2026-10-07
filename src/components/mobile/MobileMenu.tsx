@@ -1,5 +1,5 @@
 import { Option, Step, ThemeTemplateGroup, useZakeke } from '@zakeke/zakeke-configurator-react';
-import { T, TWO_TONE_NOTE, isTwoToneOption, useActualGroups, useUndoRedoActions, useUndoRegister } from 'Helpers';
+import { STUD_NOTE, T, TWO_TONE_NOTE, isStudOption, isTwoToneOption, useActualGroups, useUndoRedoActions, useUndoRegister } from 'Helpers';
 import { Map } from 'immutable';
 import { useEffect, useRef, useState } from 'react';
 import useStore from 'Store';
@@ -701,6 +701,9 @@ const MobileMenu = () => {
 										<img src={option.imageUrl ?? noImage} alt={T._d(option.name)} loading='lazy' />
 										{(isTwoToneOption(option) || (isTwoToneOption(selectedAttribute) && !/^(x|no|off|0)$/i.test((option.name ?? '').trim()) && option.displayOrder === Math.max(...selectedAttribute.options.map((o) => o.displayOrder)))) && (
 											<OptionSwatchNote>{TWO_TONE_NOTE}</OptionSwatchNote>
+										)}
+										{isStudOption(option) && (
+											<OptionSwatchNote>{STUD_NOTE}</OptionSwatchNote>
 										)}
 										{option.selected && (
 											<OptionSwatchCheck>

@@ -30,6 +30,12 @@ export const isTwoToneOption = (option?: { name?: string | null } | null) =>
 
 export const TWO_TONE_NOTE = 'Additional $100';
 
+// Stud is a paid add-on; flagged with an "Additional $50" note on its swatch.
+export const isStudOption = (option?: { name?: string | null } | null) =>
+	/\bstud(s|ded)?\b/i.test(option?.name ?? '');
+
+export const STUD_NOTE = 'Additional $50';
+
 export const swap = (group: Group[], i: number, j: number) => {
 	let temp = group[i];
 	group[i] = group[j];
