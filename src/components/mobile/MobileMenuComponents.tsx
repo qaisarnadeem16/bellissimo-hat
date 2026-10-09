@@ -266,7 +266,7 @@ export const AttributeHeaderBar = styled.div`
 	grid-template-columns: auto auto 1fr auto auto;
 	align-items: center;
 	gap: 10px;
-	padding: 12px 14px;
+	padding: 12px 14px 25px 14px;
 	background-color: #fff;
 	border-bottom: 1px solid #f0f0f0;
 `;
